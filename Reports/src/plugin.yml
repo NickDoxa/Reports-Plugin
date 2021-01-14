@@ -1,0 +1,9 @@
+main: com.doxa.report.Main
+name: Reports
+version: 1.0
+description: Reports by Nick Doxa.
+api-version: 1.16
+author: Nick Doxa
+commands:
+  report:
+    description: report cmd

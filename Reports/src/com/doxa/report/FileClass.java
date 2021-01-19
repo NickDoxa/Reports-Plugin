@@ -23,7 +23,7 @@ public class FileClass {
 		    	System.out.println("File created: " + file.getName());
 		    } else {
 		    	//File exists so just scan it
-		    	System.out.print("File scanned: reports.txt");
+		    	System.out.println("File scanned: reports.txt");
 		    }
 	    } catch (IOException e) {
 	        System.out.println("An error occurred creating or reading reports.txt. contact Nick Doxa ASAP!");

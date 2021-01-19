@@ -25,12 +25,15 @@ public class Main extends JavaPlugin implements Listener {
     public boolean useDatabase = this.getConfig().getBoolean("use-database");
 	
     public SQL sql;
+    public GUI gui;
     
 	@Override
 	public void onEnable() {
-		this.sql = new SQL(this);
-		this.getServer().getPluginManager().registerEvents(this, this);
 		this.saveDefaultConfig();
+		this.sql = new SQL(this);
+		this.gui = new GUI(this);
+		this.getServer().getPluginManager().registerEvents(this, this);
+		this.getServer().getPluginManager().registerEvents(gui, this);
 		try {
 		if (!useDatabase) {
 			reportFile.createFile();
@@ -45,6 +48,7 @@ public class Main extends JavaPlugin implements Listener {
 		} catch (NullPointerException e) {
 		System.out.print("THIS SHIT BROKE");
 		}
+		gui.createInventory();
 	}
 	
 	@Override
@@ -53,6 +57,7 @@ public class Main extends JavaPlugin implements Listener {
 		if (useDatabase) {
 			sql.disconnect();
 		}
+		saveDefaultConfig();
 	}
 	
 	FileClass reportFile = new FileClass();
@@ -85,13 +90,18 @@ public class Main extends JavaPlugin implements Listener {
 		}
 	}
 	
+	private boolean usealert;
+	
 	public void alertAdmins(Player sender) {
+		usealert = getConfig().getBoolean("GUI.alert-admins");
 		for (Player admin : Bukkit.getOnlinePlayers()) {
 			if (admin.hasPermission(adminperm)) {
-				admin.playSound(admin.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
-				admin.sendMessage(prefix + ChatColor.DARK_RED + reported_player.getName() + 
-						ChatColor.RED + " was reported for " + reason + " by " + ChatColor.DARK_RED + 
-						sender.getName());
+				if (usealert) {
+					admin.playSound(admin.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 1, 1);
+					admin.sendMessage(prefix + ChatColor.DARK_RED + reported_player.getName() + 
+							ChatColor.RED + " was reported for " + reason + " by " + ChatColor.DARK_RED + 
+							sender.getName());
+				}
 			}
 		}
 	}
@@ -111,49 +121,54 @@ public class Main extends JavaPlugin implements Listener {
 	
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 		Player player = (Player) sender;
-		if (label.equalsIgnoreCase("report") && args.length < 1 || args.length > 1) {
-			player.sendMessage(prefix + ChatColor.RED + "Incorrect arguments. Correct usage: /report <player>");
-		} else if (label.equalsIgnoreCase("report") && args.length == 1
-				&& !args[0].equalsIgnoreCase("help") && !args[0].equalsIgnoreCase("list")
-				&& !args[0].equalsIgnoreCase("clear")) {
-			getReason(player, args[0]);
-		} else if (label.equalsIgnoreCase("report") && args[0].equalsIgnoreCase("list")) {
-			if (player.hasPermission(adminperm)) {
-				if (useDatabase) {
-					sql.readTable(player);
-				} else {
-					try {
-						reportFile.scanFile(player);
-					} catch (IOException e) {
-						e.printStackTrace();
+		if (sender instanceof Player) {
+			if (label.equalsIgnoreCase("report") && args.length < 1 || args.length > 1) {
+				player.sendMessage(prefix + ChatColor.RED + "Incorrect arguments. Correct usage: /report <player>");
+			} else if (label.equalsIgnoreCase("report") && args.length == 1
+					&& !args[0].equalsIgnoreCase("help") && !args[0].equalsIgnoreCase("list")
+					&& !args[0].equalsIgnoreCase("clear") && !args[0].equalsIgnoreCase("config")) {
+				getReason(player, args[0]);
+			} else if (label.equalsIgnoreCase("report") && args[0].equalsIgnoreCase("list")) {
+				if (player.hasPermission(adminperm)) {
+					if (useDatabase) {
+						sql.readTable(player);
+					} else {
+						try {
+							reportFile.scanFile(player);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
 					}
-				}
-			} else {
-				player.sendMessage(prefix + ChatColor.RED + "Insufficient Permissions!");
-			}
-		} else if (label.equalsIgnoreCase("report") && args[0].equalsIgnoreCase("help")) {
-			player.sendMessage("");
-			player.sendMessage(ChatColor.GOLD + "" + ChatColor.BOLD + "Reports");
-			player.sendMessage("");
-			player.sendMessage(ChatColor.YELLOW + "Main Command: /report");
-			player.sendMessage(ChatColor.YELLOW + "Usage: /report <player>");
-			if (player.hasPermission(adminperm)) {
-				player.sendMessage("");
-				player.sendMessage(ChatColor.RED + "Admin Commands");
-				player.sendMessage("");
-				player.sendMessage(ChatColor.YELLOW + "To clear report list: /report clear");
-				player.sendMessage(ChatColor.YELLOW + "To view active reports: /report list");
-			}
-		} else if (label.equalsIgnoreCase("report") && args[0].equalsIgnoreCase("clear")) {
-			if (player.hasPermission(adminperm)) {
-				if (useDatabase) {
-					sql.clearTable();
 				} else {
-					reportFile.clearFile();
+					player.sendMessage(prefix + ChatColor.RED + "Insufficient Permissions!");
 				}
-				player.sendMessage(prefix + ChatColor.GOLD + "Reports list cleared!");
-			} else {
-				player.sendMessage(prefix + ChatColor.RED + "Insufficient Permissions!");
+			} else if (label.equalsIgnoreCase("report") && args[0].equalsIgnoreCase("help")) {
+				player.sendMessage("");
+				player.sendMessage(ChatColor.GOLD + "" + ChatColor.BOLD + "Reports");
+				player.sendMessage("");
+				player.sendMessage(ChatColor.YELLOW + "Main Command: /report");
+				player.sendMessage(ChatColor.YELLOW + "Usage: /report <player>");
+				if (player.hasPermission(adminperm)) {
+					player.sendMessage("");
+					player.sendMessage(ChatColor.RED + "Admin Commands");
+					player.sendMessage("");
+					player.sendMessage(ChatColor.YELLOW + "To clear report list: /report clear");
+					player.sendMessage(ChatColor.YELLOW + "To view active reports: /report list");
+					player.sendMessage(ChatColor.YELLOW + "To change config settings: /report config");
+				}
+			} else if (label.equalsIgnoreCase("report") && args[0].equalsIgnoreCase("clear")) {
+				if (player.hasPermission(adminperm)) {
+					if (useDatabase) {
+						sql.clearTable();
+					} else {
+						reportFile.clearFile();
+					}
+					player.sendMessage(prefix + ChatColor.GOLD + "Reports list cleared!");
+				} else {
+					player.sendMessage(prefix + ChatColor.RED + "Insufficient Permissions!");
+				}
+			} else if (label.equalsIgnoreCase("report") && args[0].equalsIgnoreCase("config")) {
+				gui.openGUI(player);
 			}
 		}
 		return false;

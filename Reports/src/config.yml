@@ -5,3 +5,5 @@ port: ''
 database: ''
 username: ''
 password: ''
+GUI:
+  alert-admins: true
